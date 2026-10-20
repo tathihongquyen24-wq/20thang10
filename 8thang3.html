@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chúc bạn có một ngày 8/3 vui vẻ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #f472b6; 
+            --secondary: #c084fc; 
+            --bg-color: #030005;
+            --neon-green: #00ffaa;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            overflow: hidden; 
+            background-color: var(--bg-color);
+            color: white;
+            perspective: 1000px; 
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+        #particle-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at center, #140510 0%, #000000 100%);
+            transition: filter 2s ease;
+        }
+
+        .title-font { font-family: 'Dancing Script', cursive; }
+        .serif-font { font-family: 'Playfair Display', serif; }
+        .cyber-font { font-family: 'Orbitron', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.02);
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out; 
+        }
+        .corner-ornament { position: absolute; width: 30px; height: 30px; border: 1px solid rgba(244, 114, 182, 0.3); pointer-events: none; }
+        @media (min-width: 768px) { .corner-ornament { width: 40px; height: 40px; } }
+        .corner-tl { top: 15px; left: 15px; border-right: none; border-bottom: none; border-radius: 10px 0 0 0; }
+        .corner-tr { top: 15px; right: 15px; border-left: none; border-bottom: none; border-radius: 0 10px 0 0; }
+        .corner-bl { bottom: 15px; left: 15px; border-right: none; border-top: none; border-radius: 0 0 0 10px; }
+        .corner-br { bottom: 15px; right: 15px; border-left: none; border-top: none; border-radius: 0 0 10px 0; }
+        .view-section {
+            position: absolute; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none;
+            transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(0.95) translateY(20px);
+        }
+        .view-active { opacity: 1; pointer-events: auto; transform: scale(1) translateY(0); }
+        .glow-btn {
+            position: relative; background: rgba(244, 114, 182, 0.1);
+            border: 1px solid rgba(244, 114, 182, 0.5); color: #fbcfe8;
+            overflow: hidden; transition: all 0.4s ease; cursor: pointer;
+        }
+        .glow-btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: all 0.5s ease;
+        }
+        .glow-btn:hover {
+            box-shadow: 0 0 20px rgba(244, 114, 182, 0.5), inset 0 0 15px rgba(244, 114, 182, 0.3);
+            border-color: rgba(244, 114, 182, 1); text-shadow: 0 0 8px rgba(255,255,255,0.6);
+        }
+        .glow-btn:hover::before { left: 100%; }
+        .fingerprint-container {
+            position: relative; width: 130px; height: 130px; margin: 0 auto; cursor: pointer;
+        }
+        
+        .heart-outline {
+            stroke: rgba(244, 114, 182, 0.3); stroke-width: 2; fill: rgba(244, 114, 182, 0.05);
+            transition: all 0.3s; transform-origin: center;
+        }
+        .scanning .heart-outline {
+            stroke: var(--primary); fill: rgba(244, 114, 182, 0.15);
+            filter: drop-shadow(0 0 10px var(--primary));
+            animation: heartBeat 0.8s infinite alternate ease-in-out;
+        }
+        .fingerprint-success .heart-outline {
+            stroke: var(--neon-green); fill: rgba(0, 255, 170, 0.1);
+            filter: drop-shadow(0 0 15px var(--neon-green));
+            animation: none; transform: scale(1.05);
+        }
+        @keyframes heartBeat {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
+
+        .fingerprint-base { stroke: rgba(255, 255, 255, 0.15); }
+        .fingerprint-glow {
+            stroke: var(--primary); filter: drop-shadow(0 0 8px var(--primary));
+            clip-path: inset(100% 0 0 0); transition: clip-path 0.1s linear;
+        }
+        .fingerprint-success .fingerprint-glow {
+            stroke: var(--neon-green); filter: drop-shadow(0 0 15px var(--neon-green));
+            clip-path: inset(0 0 0 0) !important; transition: all 0.5s ease !important;
+        }
+
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--primary); box-shadow: 0 0 15px var(--primary), 0 0 30px var(--primary);
+            opacity: 0; pointer-events: none; border-radius: 50%;
+        }
+        .scanning .scan-line { animation: scanAnim 0.7s linear infinite alternate; opacity: 1; }
+        @keyframes scanAnim { 0% { top: 10%; } 100% { top: 90%; } }
+        .quote-text {
+            position: absolute; opacity: 0; 
+            font-size: 1.5rem;
+            font-weight: 300; text-align: center; letter-spacing: 0.05em; 
+            text-shadow: 0 0 25px rgba(255, 255, 255, 0.5); padding: 0 20px; line-height: 1.6;
+        }
+        @media (min-width: 768px) { .quote-text { font-size: 2rem; } } 
+        .quote-anim { animation: cinematicFade 4.5s ease-in-out forwards; }
+        @keyframes cinematicFade {
+            0% { opacity: 0; transform: scale(0.95); filter: blur(10px); }
+            20% { opacity: 1; transform: scale(1); filter: blur(0); }
+            80% { opacity: 1; transform: scale(1.05); filter: blur(0); }
+            100% { opacity: 0; transform: scale(1.1); filter: blur(10px); }
+        }
+        .cursor {
+            display: inline-block; width: 2px; height: 1.2em; background-color: #fbcfe8;
+            animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 2px;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+        .line-text { min-height: 1.5em; margin-bottom: 0.8rem; color: #f1f5f9; }
+        .draw-path { stroke-dasharray: 400; stroke-dashoffset: 400; }
+        .start-draw .draw-path { animation: drawSvg 3s ease-in-out forwards; }
+        .start-draw .delay-1 { animation-delay: 0.5s; }
+        .start-draw .delay-2 { animation-delay: 1.5s; }
+        .start-draw .delay-3 { animation-delay: 2.5s; }
+        .start-draw .delay-4 { animation-delay: 3.5s; }
+        @keyframes drawSvg { to { stroke-dashoffset: 0; } }
+
+        .fade-up-text { opacity: 0; transform: translateY(20px); transition: all 1s ease; }
+        .start-draw .fade-up-text { opacity: 1; transform: translateY(0); }
+        .delay-text-1 { transition-delay: 2s; }
+        .delay-text-2 { transition-delay: 3.5s; }
+
+        .soft-fade-in { opacity: 0; animation: simpleFadeIn 2.5s forwards ease; }
+        .text-delay-1 { animation-delay: 5s; }
+        .text-delay-2 { animation-delay: 6.5s; }
+        .text-delay-3 { animation-delay: 8s; } 
+        @keyframes simpleFadeIn { to { opacity: 1; } }
+        .neon-glow {
+            filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 8px rgba(255, 50, 100, 0.8)) drop-shadow(0 0 20px rgba(255, 0, 50, 0.9));
+            animation: pulse-neon 2s infinite alternate ease-in-out;
+        }
+        @keyframes pulse-neon {
+            0% { filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)) drop-shadow(0 0 5px rgba(255,50,100,0.6)) drop-shadow(0 0 15px rgba(255,0,50,0.7)); }
+            100% { filter: drop-shadow(0 0 3px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(255,50,100,0.9)) drop-shadow(0 0 25px rgba(255,0,50,1)); }
+        }
+        #flash-overlay { position: fixed; inset: 0; background: white; z-index: 100; opacity: 0; pointer-events: none; }
+        .flash-anim { animation: flash 1.5s ease-out forwards; }
+        @keyframes flash { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+        .heart-petal-wrapper { position: fixed; top: -10vh; z-index: 50; pointer-events: none; animation: fallDrop linear infinite; }
+        .heart-petal-inner { width: 100%; height: 100%; animation: swayDance ease-in-out infinite alternate; }
+        @keyframes fallDrop { 0% { top: -10vh; opacity: 0; } 10% { opacity: 1; } 80% { opacity: 1; } 100% { top: 110vh; opacity: 0; } }
+        @keyframes swayDance { 0% { transform: translateX(-40px) rotate(-45deg); } 100% { transform: translateX(40px) rotate(45deg) rotateY(180deg); } }
+
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(244, 114, 182, 0.3); border-radius: 10px; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <canvas id="particle-canvas"></canvas>
+    <div id="flash-overlay"></div>
+
+    <div class="relative w-full max-w-4xl h-screen flex justify-center items-center" style="transform-style: preserve-3d;">
+        <div id="stage-1" class="view-section view-active px-6 flex-col">
+            <div class="glass-panel p-8 md:p-10 rounded-3xl w-full max-w-sm flex flex-col items-center text-center">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" class="w-20 h-20 md:w-24 md:h-24 text-pink-500 mb-4" style="filter: drop-shadow(0 0 10px rgba(244,114,182,0.5));">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+
+                
+                <h2 class="title-font text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400 font-bold  leading-relaxed drop-shadow-[0_0_15px_rgba(244,114,182,0.3)]">Thư gửi cậu
+                </h2>
+      <h1 class="text-xl md:text-2xl font-light tracking-widest mb-1 text-gray-300">Xác thực để mở thư</h1>          
+                <div id="fingerprint-area" class="fingerprint-container relative w-48 h-48 flex items-center justify-center">
+    
+    <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full pointer-events-none">
+        <path class="heart-outline" 
+              d="M50,88 C50,88 15,62 15,38 C15,22 38,18 50,35 C62,18 85,22 85,38 C85,62 50,88 50,88 Z" 
+              fill="none" 
+              stroke="url(#heartGradient)" 
+              stroke-width="1.5" 
+              stroke-linecap="round"/>
+        <defs>
+            <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#f472b6;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#fb7185;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full transform scale-[0.6] translate-y-[14px] pointer-events-none fingerprint-base" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.6">
+        <path d="M25,70 C22,60 25,40 35,30 C45,20 65,20 75,35 C82,45 80,65 72,80" />
+        <path d="M32,82 C28,70 30,50 38,40 C46,30 60,30 68,42 C72,50 72,65 68,75" />
+        <path d="M40,88 C36,75 38,58 45,50 C52,42 62,45 65,55 C67,65 65,78 60,85" />
+        <path d="M48,85 C45,78 46,65 50,60 C54,55 58,58 59,65 C60,72 58,80 54,85" />
+        <path d="M50,75 C48,70 48,68 50,65 C52,62 54,65 54,68 C54,72 52,75 50,78" />
+        <path d="M20,50 C20,35 35,15 55,15 C70,15 85,30 85,55" stroke-dasharray="2 4" />
+        <path d="M30,22 C40,12 65,12 75,25" />
+    </svg>
+    
+    <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full transform scale-[0.6] translate-y-[14px] pointer-events-none fingerprint-glow" id="fp-glow" fill="none" stroke="#f472b6" stroke-width="3" stroke-linecap="round" style="filter: drop-shadow(0 0 8px #f472b6);">
+        <path d="M25,70 C22,60 25,40 35,30 C45,20 65,20 75,35 C82,45 80,65 72,80" />
+        <path d="M32,82 C28,70 30,50 38,40 C46,30 60,30 68,42 C72,50 72,65 68,75" />
+        <path d="M40,88 C36,75 38,58 45,50 C52,42 62,45 65,55 C67,65 65,78 60,85" />
+        <path d="M48,85 C45,78 46,65 50,60 C54,55 58,58 59,65 C60,72 58,80 54,85" />
+        <path d="M50,75 C48,70 48,68 50,65 C52,62 54,65 54,68 C54,72 52,75 50,78" />
+        <path d="M20,50 C20,35 35,15 55,15 C70,15 85,30 85,55" stroke-dasharray="2 4" />
+        <path d="M30,22 C40,12 65,12 75,25" />
+    </svg>
+
+    <div class="scan-line"></div>
+</div>
+
+                <div class="h-14 mt-2 flex flex-col items-center justify-center">
+                    <p id="fp-instruction" class="text-gray-400 text-xs italic tracking-wider">Quét vân tay để xác thực</p>
+                    <p id="fp-progress" class="cyber-font text-2xl text-pink-400 hidden drop-shadow-[0_0_5px_#f472b6]">0%</p>
+                    <p id="fp-success" class="cyber-font text-sm md:text-base text-[var(--neon-green)] hidden drop-shadow-[0_0_10px_var(--neon-green)] tracking-widest">XÁC THỰC THÀNH CÔNG</p>
+                </div>
+
+                <button id="btn-to-stage2" class="glow-btn px-6 py-2 rounded-full mt-2 text-xs tracking-widest uppercase opacity-0 pointer-events-none transition-opacity duration-500">Nhấn để đọc thư</button>
+            </div>
+        </div>
+        <div id="stage-2" class="view-section flex-col px-6">
+            <div id="quote-container" class="relative w-full h-32 flex justify-center items-center max-w-3xl"></div>
+        </div>
+        <div id="stage-3" class="view-section px-4 md:px-6 py-8">
+            <div id="tilt-card" class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-12 relative w-full max-w-2xl max-h-[90vh] flex flex-col shadow-[0_0_40px_rgba(244,114,182,0.15)]">
+                
+                <div class="corner-ornament corner-tl"></div>
+                <div class="corner-ornament corner-tr"></div>
+                <div class="corner-ornament corner-bl"></div>
+                <div class="corner-ornament corner-br"></div>
+                
+                <div class="relative z-10 w-full flex-grow overflow-y-auto custom-scroll pr-2 flex flex-col">
+                    <div class="mb-4 opacity-0 flex-shrink-0" id="letter-salutation">
+                        <h1 class="title-font text-3xl md:text-5xl text-pink-400 mb-1">Gửi cậu, một đóa hoa nhỏ giữa thế giới rộng lớn!</h1>
+                        <div class="w-20 h-px bg-gradient-to-r from-pink-500 to-transparent mb-2"></div>
+                    </div>
+        
+                    <div id="letter-body" class="text-[15px] sm:text-[17px] md:text-[20px] font-light leading-relaxed serif-font tracking-wide mb-6 flex-grow"></div>
+                </div>
+
+                <div class="relative z-20 w-full flex justify-center mt-4 pt-4 border-t border-white/10 flex-shrink-0">
+                    <button id="btn-to-stage4" class="glow-btn px-8 py-3 rounded-full text-xs md:text-sm tracking-widest uppercase opacity-0 pointer-events-none transition-opacity duration-1000 shadow-lg bg-slate-900/80">
+                        Tiếp Theo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="stage-4" class="view-section flex-col px-4 md:px-6">
+            <div class="glass-panel rounded-3xl p-8 md:p-12 relative w-full max-w-xl flex flex-col items-center justify-center border border-pink-500/20" id="heart-container">
+                
+                <div class="w-40 h-40 md:w-56 md:h-56 mb-8 relative">
+                    <svg viewBox="0 0 100 100" class="w-full h-full" style="filter: drop-shadow(0 0 15px rgba(244,114,182,0.6));">
+                        <path class="draw-path delay-1" d="M50,85 C50,85 10,60 10,35 C10,15 40,15 50,35 C60,15 90,15 90,35 C90,60 50,85 50,85 Z" fill="none" stroke="#f472b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path class="draw-path delay-2" d="M25,40 C35,25 45,35 50,45" fill="none" stroke="#fbcfe8" stroke-width="1" opacity="0.6"/>
+                        <path class="draw-path delay-2" d="M75,40 C65,25 55,35 50,45" fill="none" stroke="#fbcfe8" stroke-width="1" opacity="0.6"/>
+                    </svg>
+                </div>
+
+                <div class="text-center space-y-4">
+                    <h3 class="title-font text-3xl md:text-4xl text-pink-300 fade-up-text delay-text-1">Hãy yêu thương chính mình</h3>
+                    <p class="serif-font text-gray-300 italic text-base md:text-lg leading-relaxed fade-up-text delay-text-2">
+                        "Giữa những kỳ vọng của thế giới ngoài kia, tớ chỉ mong cậu đừng quên dành cho chính mình một sự ưu ái đặc biệt. Yêu bản thân không phải là điều gì quá lớn lao, mà đôi khi chỉ là việc cậu cho phép mình nghỉ ngơi khi mệt mỏi, tự mua cho mình những thứ mà mình yêu thích. Hãy nhớ rằng, cậu chỉ có thể tỏa sáng rực rỡ nhất khi tâm hồn được chăm sóc bằng sự dịu dàng từ chính bản thân mình."
+                    </p>
+                </div>
+
+                <div class="mt-10 fade-up-text delay-text-2">
+                    <button id="btn-to-stage5" class="glow-btn px-8 py-3 rounded-full text-xs md:text-sm tracking-widest uppercase">
+                        Cuối cùng
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="stage-5" class="view-section flex-col px-4 md:px-6">
+            <div id="svg-flower-container" class="relative w-full max-w-2xl flex flex-col items-center justify-center glass-panel rounded-3xl p-6 md:p-12 border-t border-red-500/30">
+                
+                <div class="relative w-64 h-72 md:w-80 md:h-96 mb-2 flex justify-center items-center">
+                    <svg viewBox="0 0 100 130" class="w-full h-full neon-glow overflow-visible">
+                        <g fill="none" stroke="#ffe1ec" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round">
+                            <path class="draw-path" d="M50,125 C52,100 48,80 50,65" stroke-width="1.2" />
+                            <path class="draw-path delay-1" d="M49,90 C30,95 20,80 25,70 C35,65 45,75 49,90" stroke-width="0.8"/>
+                            <path class="draw-path delay-1" d="M51,75 C70,80 80,65 75,55 C65,50 55,60 51,75" stroke-width="0.8"/>
+                            <path class="draw-path delay-2" d="M46,65 C46,68 54,68 54,65 C55,60 45,60 46,65 Z" stroke-width="1" />
+                            <path class="draw-path delay-2" d="M30,45 C30,65 70,65 70,45" stroke-width="1.2"/>
+                            <path class="draw-path delay-3" d="M25,30 C15,40 20,55 35,52" />
+                            <path class="draw-path delay-3" d="M75,30 C85,40 80,55 65,52" />
+                            <path class="draw-path delay-3" d="M30,45 C20,30 35,15 50,25 C65,15 80,30 70,45" stroke-width="1.2" />
+                            <path class="draw-path delay-4" d="M35,35 C40,20 60,20 65,35 C55,25 45,25 35,35" />
+                            <path class="draw-path delay-4" d="M40,30 C45,20 55,20 60,30 C55,25 45,25 40,30" />
+                            <path class="draw-path delay-5" d="M35,52 C45,45 55,45 65,52" />
+                            <path class="draw-path delay-5" d="M30,45 C40,55 60,55 70,45" />
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="text-center w-full z-20">
+                    <h2 class="title-font soft-fade-in text-delay-1 text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-pink-400 to-purple-400 font-bold mb-6 drop-shadow-[0_0_15px_rgba(255,20,50,0.6)]">
+                        Happy Women's Day
+                    </h2>
+                    
+                    <div class="soft-fade-in text-delay-2 w-full max-w-lg mx-auto bg-black/50 backdrop-blur-md rounded-xl p-6 md:p-8 border border-red-500/30 shadow-[0_0_30px_rgba(255,0,50,0.15)]">
+                        <p class="text-gray-200 serif-font italic text-base md:text-xl leading-relaxed text-shadow-sm">
+                            "Chúc cậu một ngày 8/3 thật trọn vẹn và bình yên. Mong cậu luôn kiên cường như cỏ dại, kiêu hãnh như đóa hồng và quan trọng nhất, hãy luôn là phiên bản hạnh phúc nhất của chính mình."
+                        </p>
+                    </div>
+
+                    <div class="soft-fade-in text-delay-3 w-full max-w-lg mx-auto mt-6 flex flex-col items-end px-2">
+                        <p class="text-gray-400 font-light text-sm md:text-base italic mb-1">Cảm ơn vì đã đọc, trân trọng.</p>
+                        <p class="title-font text-2xl md:text-3xl text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]">Quang Huy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+        let mouse = { x: null, y: null, radius: 100 };
+        let particleSpeedMultiplier = 1; 
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        window.addEventListener('mouseout', () => { mouse.x = undefined; mouse.y = undefined; });
+        window.addEventListener('touchmove', (e) => { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; });
+        window.addEventListener('touchend', () => { mouse.x = undefined; mouse.y = undefined; });
+
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width; this.y = Math.random() * height;
+                this.size = Math.random() * 2 + 0.5; this.density = (Math.random() * 30) + 1;
+                this.angle = Math.random() * 360; this.velocity = Math.random() * 0.5 + 0.2;
+                this.color = `hsla(${Math.random() * 40 + 320}, 80%, 60%, ${Math.random() * 0.5 + 0.1})`; 
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.closePath(); ctx.fill();
+            }
+            update() {
+                this.angle += this.velocity * 0.02 * particleSpeedMultiplier;
+                this.y -= this.velocity * particleSpeedMultiplier;
+                this.x += Math.sin(this.angle) * 0.5 * particleSpeedMultiplier;
+                if (this.y < -10) { this.y = height + 10; this.x = Math.random() * width; }
+                if (mouse.x != null && mouse.y != null) {
+                    let dx = mouse.x - this.x, dy = mouse.y - this.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    let force = (mouse.radius - distance) / mouse.radius;
+                    if (force > 0 && distance < mouse.radius) {
+                        this.x -= (dx / distance) * force * this.density;
+                        this.y -= (dy / distance) * force * this.density;
+                    }
+                }
+                this.draw();
+            }
+        }
+        function initParticles() {
+            particles = []; let num = (width * height) / 6000; 
+            for (let i = 0; i < num; i++) particles.push(new Particle());
+        }
+        function animateCanvas() {
+            ctx.clearRect(0, 0, width, height);
+            for (let i = 0; i < particles.length; i++) particles[i].update();
+            requestAnimationFrame(animateCanvas);
+        }
+        initParticles(); animateCanvas();
+
+        const heartColors = ['#ff2a2a', '#ff4d4d', '#ff7eb3', '#ff85a2', '#f43f5e', '#ffffff'];
+        const heartShape = confetti.shapeFromPath({ path: 'M16.7 2.7c-2.8-2.8-7.3-2.8-10.1 0C4 5.3 4 9.8 6.7 12.5l10.1 10.1 10.1-10.1c2.7-2.7 2.7-7.2 0-9.8-2.8-2.8-7.3-2.8-10.1 0z' });
+
+        function shootConfettiBurst() {
+            confetti({ particleCount: 30, spread: 90, origin: { y: 0.6 }, colors: heartColors, shapes: [heartShape], scalar: window.innerWidth < 768 ? 1.2 : 1.5 });
+        }
+
+        let isHeartsFalling = false;
+        function startFallingHearts() {
+            if (isHeartsFalling) return; isHeartsFalling = true;
+            const numHearts = window.innerWidth < 768 ? 20 : 35; 
+            for (let i = 0; i < numHearts; i++) {
+                setTimeout(() => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'heart-petal-wrapper';
+                    wrapper.style.left = Math.random() * 100 + 'vw';
+                    wrapper.style.animationDuration = (Math.random() * 6 + 7) + 's'; 
+                    const size = Math.random() * 8 + 10 + 'px';
+                    wrapper.style.width = size; wrapper.style.height = size;
+                    
+                    const inner = document.createElement('div');
+                    inner.className = 'heart-petal-inner';
+                    inner.style.animationDuration = (Math.random() * 2 + 2.5) + 's'; 
+                    inner.style.color = heartColors[Math.floor(Math.random() * heartColors.length)];
+                    inner.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" class="w-full h-full opacity-80"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+                    
+                    wrapper.appendChild(inner); document.body.appendChild(wrapper);
+                }, Math.random() * 5000); 
+            }
+        }
+
+        const stage1 = document.getElementById('stage-1');
+        const stage2 = document.getElementById('stage-2');
+        const stage3 = document.getElementById('stage-3');
+        const stage4 = document.getElementById('stage-4');
+        const stage5 = document.getElementById('stage-5');
+        const flashOverlay = document.getElementById('flash-overlay');
+
+        const fpArea = document.getElementById('fingerprint-area');
+        const fpGlow = document.getElementById('fp-glow');
+        const fpProgressTxt = document.getElementById('fp-progress');
+        const fpInstruction = document.getElementById('fp-instruction');
+        const fpSuccess = document.getElementById('fp-success');
+        const btnToStage2 = document.getElementById('btn-to-stage2');
+        
+        let holdTimer;
+        let progress = 0;
+        const holdDuration = 2000; // 2s
+        let isUnlocked = false;
+
+        function startHold(e) {
+            if(isUnlocked) return;
+            e.preventDefault(); 
+            fpArea.classList.add('scanning');
+            fpInstruction.classList.add('hidden');
+            fpProgressTxt.classList.remove('hidden');
+
+            holdTimer = setInterval(() => {
+                progress += 50;
+                let percent = Math.min((progress / holdDuration) * 100, 100);
+                
+                fpProgressTxt.innerText = `${Math.floor(percent)}%`;
+                fpGlow.style.clipPath = `inset(${100 - percent}% 0 0 0)`;
+
+                if(progress >= holdDuration) {
+                    unlockSuccess();
+                }
+            }, 50);
+        }
+
+        function endHold() {
+            if(isUnlocked) return;
+            clearInterval(holdTimer);
+            progress = 0;
+            fpArea.classList.remove('scanning');
+            fpProgressTxt.classList.add('hidden');
+            fpInstruction.classList.remove('hidden');
+            fpGlow.style.clipPath = `inset(100% 0 0 0)`;
+        }
+
+        function unlockSuccess() {
+            clearInterval(holdTimer);
+            isUnlocked = true;
+            fpArea.classList.remove('scanning');
+            fpArea.classList.add('fingerprint-success');
+            
+            fpProgressTxt.classList.add('hidden');
+            fpSuccess.classList.remove('hidden');
+            
+            setTimeout(() => {
+                btnToStage2.style.opacity = '1';
+                btnToStage2.style.pointerEvents = 'auto';
+            }, 500);
+        }
+
+        fpArea.addEventListener('mousedown', startHold);
+        window.addEventListener('mouseup', endHold);
+        fpArea.addEventListener('mouseleave', endHold);
+        fpArea.addEventListener('touchstart', startHold, {passive: false});
+        window.addEventListener('touchend', endHold);
+
+        btnToStage2.addEventListener('click', () => {
+            stage1.classList.remove('view-active');
+            particleSpeedMultiplier = 4;
+            canvas.style.filter = 'blur(2px)';
+            setTimeout(() => { stage2.classList.add('view-active'); playQuotesSequence(); }, 800);
+        });
+
+        const quotes = [
+            "Chào cậu...",
+            "Như cậu đã biết, hôm nay là một ngày đặc biệt của một nửa thế giới.",
+            "Chính vì vậy, tớ chọn lúc này để viết vài dòng riêng gửi đến cậu."
+        ];
+
+        async function playQuotesSequence() {
+            const quoteContainer = document.getElementById('quote-container');
+            for (let i = 0; i < quotes.length; i++) {
+                const p = document.createElement('p');
+                p.className = 'quote-text quote-anim text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-purple-200';
+                p.innerText = quotes[i];
+                quoteContainer.innerHTML = '';
+                quoteContainer.appendChild(p);
+                await new Promise(r => setTimeout(r, 4500));
+            }
+            
+            stage2.classList.remove('view-active');
+            particleSpeedMultiplier = 1;
+            canvas.style.filter = 'none';
+            setTimeout(() => {
+                stage3.classList.add('view-active');
+                setTimeout(() => {
+                    document.getElementById('letter-salutation').style.transition = "opacity 1.5s ease";
+                    document.getElementById('letter-salutation').style.opacity = "1";
+                    setTimeout(typeLetter, 1000);
+                }, 800);
+            }, 800);
+        }
+
+        const poemLines = [
+            "Cậu biết không, không chỉ riêng ngày hôm nay, mà trong suốt hành trình dài rộng phía trước, cậu vẫn luôn là một mảnh ghép vô giá của thế giới này. Mình luôn thích cái cách cậu chọn đối đãi với cuộc đời bằng sự lương thiện thuần khiết, tựa như một mặt hồ yên ả dù sâu thẳm bên trong là những đợt sóng ngầm nỗ lực không ngừng nghỉ. Ngay cả khi mệt mỏi bủa vây, cậu vẫn giữ trọn vẻ đẹp đặc biệt ấy, và đó là điều khiến cậu trở nên đặc biệt hơn bất cứ ai.",
+            "Dù ngoài kia có đôi khi đầy rẫy những giông bão hay thử thách khiến cậu chùn bước, mình vẫn mong cậu giữ vững niềm tin vào chính mình. Đừng để những áp lực vô hình dập tắt đi ngọn lửa đam mê bên trong. Cậu xứng đáng được sống một cuộc đời trọn vẹn, được kiêu hãnh với những gì mình đang có, bởi mỗi bước đi của cậu đều mang một nét riêng đầy đặc biệt."
+        ];
+        const letterBody = document.getElementById('letter-body');
+        const btnToStage4 = document.getElementById('btn-to-stage4');
+        let currentLine = 0, currentChar = 0, currentP = null;
+        let cursorSpan = document.createElement('span'); cursorSpan.className = 'cursor';
+
+        function typeLetter() {
+            if (currentLine < poemLines.length) {
+                if (currentChar === 0) {
+                    currentP = document.createElement('div');
+                    currentP.className = 'line-text';
+                    letterBody.appendChild(currentP);
+                    currentP.appendChild(cursorSpan); 
+                }
+                if (currentChar < poemLines[currentLine].length) {
+                    const charNode = document.createTextNode(poemLines[currentLine].charAt(currentChar));
+                    currentP.insertBefore(charNode, cursorSpan);
+                    currentChar++;
+                    letterBody.parentElement.scrollTop = letterBody.parentElement.scrollHeight;
+                    setTimeout(typeLetter, window.innerWidth < 768 ? 20 : 50); 
+                } else {
+                    currentLine++; currentChar = 0;
+                    setTimeout(typeLetter, 500); 
+                }
+            } else {
+                cursorSpan.remove(); 
+                setTimeout(() => { letterBody.parentElement.scrollTop = letterBody.parentElement.scrollHeight; }, 100);
+                setTimeout(() => { btnToStage4.style.opacity = "1"; btnToStage4.style.pointerEvents = "auto"; }, 500);
+            }
+        }
+
+        btnToStage4.addEventListener('click', () => {
+            stage3.classList.remove('view-active');
+            setTimeout(() => {
+                stage4.classList.add('view-active');
+                setTimeout(() => {
+                    document.getElementById('heart-container').classList.add('start-draw');
+                }, 500);
+            }, 800);
+        });
+
+        const btnToStage5 = document.getElementById('btn-to-stage5');
+        btnToStage5.addEventListener('click', () => {
+            flashOverlay.classList.add('flash-anim');
+            shootConfettiBurst(); 
+            
+            setTimeout(() => {
+                stage4.classList.remove('view-active');
+                stage5.classList.add('view-active');
+                
+                setTimeout(() => {
+                    document.getElementById('svg-flower-container').classList.add('start-draw');
+                    startFallingHearts(); 
+                    
+                    setInterval(() => {
+                        if (Math.random() > 0.6) shootConfettiBurst();
+                    }, 4000);
+                }, 500);
+                
+                setTimeout(() => {
+                    flashOverlay.classList.remove('flash-anim');
+                }, 1500);
+            }, 450); 
+        });
+    </script>
+</body>
+</html>
